@@ -1,31 +1,61 @@
 package client
 
 import (
-	"bufio"
 	"fmt"
+	"github.com/nats-io/nats.go"
 	"log"
-	"net"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/jroimartin/gocui"
 )
 
 var (
-	connection net.Conn
-	reader     *bufio.Reader
-	writer     *bufio.Writer
+	nc       *nats.Conn
+	sub      *nats.Subscription
+	username string
 )
+
+var lock = &sync.Mutex{}
+
+func GetConn() *nats.Conn {
+	var err error
+	lock.Lock()
+	defer lock.Unlock()
+
+	if nc == nil {
+		var urls = nats.DefaultURL
+		// Connect Options.
+		opts := []nats.Option{nats.Name("NATS Sample Subscriber")}
+		// Connect to NATS
+		nc, err = nats.Connect(urls, opts...)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return nc
+}
 
 // Disconnect from chat and close
 func Disconnect(g *gocui.Gui, v *gocui.View) error {
-	connection.Close()
+	// Unsubscribe
+	sub.Unsubscribe()
+	GetConn().Close()
 	return gocui.ErrQuit
 }
 
 // Send message
 func Send(g *gocui.Gui, v *gocui.View) error {
-	writer.WriteString(v.Buffer())
-	writer.Flush()
+	conn := GetConn()
+	currentTime := time.Now().Format("15:04:05")
+	data := strings.TrimSuffix(v.Buffer(), "\n")
+	msg := fmt.Sprintf("%s [%s] %s", username, currentTime, data)
+	err := conn.Publish("msg.test", []byte(msg))
+	if err != nil {
+		log.Fatal(err)
+	}
 	g.Update(func(g *gocui.Gui) error {
 		v.Clear()
 		v.SetCursor(0, 0)
@@ -37,15 +67,12 @@ func Send(g *gocui.Gui, v *gocui.View) error {
 
 // Connect to the server, create new reader, writer and set client name
 func Connect(g *gocui.Gui, v *gocui.View) error {
-	conn, err := net.Dial("tcp", ":5000")
-	if err != nil {
-		log.Fatal(err)
-	}
-	connection = conn
-	reader = bufio.NewReader(connection)
-	writer = bufio.NewWriter(connection)
-	writer.WriteString("/name>" + v.Buffer())
-	writer.Flush()
+	username = strings.TrimSuffix(v.Buffer(), "\n")
+	// Channel Subscriber
+	ch := make(chan *nats.Msg, 64)
+	subj := "msg.test"
+	sub, _ = GetConn().ChanSubscribe(subj, ch)
+
 	// Some UI changes
 	g.SetViewOnTop("messages")
 	g.SetViewOnTop("users")
@@ -55,12 +82,12 @@ func Connect(g *gocui.Gui, v *gocui.View) error {
 	messagesView, _ := g.View("messages")
 	usersView, _ := g.View("users")
 	go func() {
+		i := 0
 		for {
-			data, _ := reader.ReadString('\n')
-			msg := strings.TrimSpace(data)
+			msg := <-ch
 			switch {
-			case strings.HasPrefix(msg, "/clients>"):
-				data := strings.SplitAfter(msg, ">")[1]
+			case strings.HasPrefix("a", "/clients>"):
+				data := strings.SplitAfter("a", ">")[1]
 				clientsSlice := strings.Split(data, " ")
 				clientsCount := len(clientsSlice)
 				var clients string
@@ -75,11 +102,16 @@ func Connect(g *gocui.Gui, v *gocui.View) error {
 				})
 			default:
 				g.Update(func(g *gocui.Gui) error {
-					fmt.Fprintln(messagesView, msg)
+					i += 1
+					fmt.Fprintln(messagesView, formatMsg(msg, i))
 					return nil
 				})
 			}
 		}
 	}()
 	return nil
+}
+
+func formatMsg(m *nats.Msg, i int) string {
+	return fmt.Sprintf("[#%d] Received on [%s]: '%s'", i, m.Subject, string(m.Data))
 }
