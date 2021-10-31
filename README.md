@@ -8,10 +8,9 @@ Chat server and client written in Go (simple prototype). The application heavily
 ### Usage
 
 1. Start the NATS server
-
-
-    # Run nats server
-    % go get github.com/nats-io/nats-server; nats-server &
+```bash
+$ go get github.com/nats-io/nats-server; nats-server &
+```
 The NATS server listens for client connections on TCP Port 4222.
 
 
@@ -34,7 +33,7 @@ $ ./cmd/chat-client/chat-client
 $ make run-http-server
 ```
    The HTTP server listens for client connections on TCP Port 3000.
-#### Rest Usecases
+#### REST Usecases
     $ curl -X POST -d '{"msg":"awesomeness"}' -H 'Content-Type: application/json' http://localhost:3000/messages
     {"Msg":"awesomeness"}
     
