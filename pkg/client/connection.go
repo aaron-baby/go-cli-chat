@@ -75,38 +75,21 @@ func Connect(g *gocui.Gui, v *gocui.View) error {
 
 	// Some UI changes
 	g.SetViewOnTop("messages")
-	g.SetViewOnTop("users")
 	g.SetViewOnTop("input")
 	g.SetCurrentView("input")
 	// Wait for server messages in new goroutine
 	messagesView, _ := g.View("messages")
-	usersView, _ := g.View("users")
 	go func() {
 		i := 0
 		for {
 			msg := <-ch
-			switch {
-			case strings.HasPrefix("a", "/clients>"):
-				data := strings.SplitAfter("a", ">")[1]
-				clientsSlice := strings.Split(data, " ")
-				clientsCount := len(clientsSlice)
-				var clients string
-				for _, client := range clientsSlice {
-					clients += client + "\n"
-				}
-				g.Update(func(g *gocui.Gui) error {
-					usersView.Title = fmt.Sprintf(" %d users: ", clientsCount)
-					usersView.Clear()
-					fmt.Fprintln(usersView, clients)
-					return nil
-				})
-			default:
-				g.Update(func(g *gocui.Gui) error {
-					i += 1
-					fmt.Fprintln(messagesView, formatMsg(msg, i))
-					return nil
-				})
-			}
+
+			g.Update(func(g *gocui.Gui) error {
+				i += 1
+				fmt.Fprintln(messagesView, formatMsg(msg, i))
+				return nil
+			})
+
 		}
 	}()
 	return nil

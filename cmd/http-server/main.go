@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"errors"
@@ -24,7 +24,7 @@ import (
 
 var ReceivedMessages []*nats.Msg
 
-func RunHTTPServer() {
+func main() {
 	nc := client.GetConn()
 
 	nc.Subscribe("msg.test", func(m *nats.Msg) {

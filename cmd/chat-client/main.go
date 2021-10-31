@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/Luqqk/go-cli-chat/cmd"
 	"log"
 
 	"github.com/Luqqk/go-cli-chat/pkg/client"
@@ -19,6 +18,5 @@ func main() {
 	g.SetKeybinding("name", gocui.KeyEnter, gocui.ModNone, client.Connect)
 	g.SetKeybinding("input", gocui.KeyEnter, gocui.ModNone, client.Send)
 	g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, client.Disconnect)
-	go cmd.RunHTTPServer()
 	g.MainLoop()
 }

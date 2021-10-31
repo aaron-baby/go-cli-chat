@@ -7,19 +7,15 @@ Chat server and client written in Go (simple prototype). The application heavily
 
 ### Usage
 
-```bash
-$ go get github.com/aaron-baby/go-cli-chat/...
-```
-
-Now you can run client:
+1. Start the NATS server
 
 
-```bash
-$ $GOPATH/bin/chat-client
-```
+    # Run nats server
+    % go get github.com/nats-io/nats-server; nats-server &
+The NATS server listens for client connections on TCP Port 4222.
 
-You can also use `make` commands:
 
+2. Build and run client:
 
 Build and run `chat-client`:
 
@@ -27,14 +23,30 @@ Build and run `chat-client`:
 $ make run-client
 ```
 
-Build `chat-client` and put binaries into corresponding `cmd/*` dir:
+Run `chat-client` binaries in `cmd/` dir:
 
 ```bash
-$ make build
+$ ./cmd/chat-client/chat-client
 ```
 
-Install `chat-client` and put binaries into `$GOPATH/bin/` dir:
-
+3. Run HTTP Server
 ```bash
-$ make install
+$ make run-http-server
 ```
+   The HTTP server listens for client connections on TCP Port 3000.
+#### Rest Usecases
+    $ curl -X POST -d '{"msg":"awesomeness"}' -H 'Content-Type: application/json' http://localhost:3000/messages
+    {"Msg":"awesomeness"}
+    
+    $ curl localhost:3000/messages
+    [{"Msg":"a [21:59:24] hi"},{"Msg":"awesomeness"},{"Msg":"a [21:59:49] pp"}]
+
+### Please Note
+
+I have leveraged below repos on this projects 
+- https://github.com/Luqqk/go-cli-chat
+- https://github.com/go-chi/chi
+
+### Known Issues
+- Username and timestamp are attached to msg body.
+- All messages send and receive are on `msg.test` subject.

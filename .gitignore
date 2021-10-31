@@ -3,5 +3,6 @@
 
 # Ignore binaries
 cmd/chat-client/chat-client
+cmd/http-server/http-server
 
 .idea
