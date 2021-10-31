@@ -1,13 +1,7 @@
 package cmd
-//
-// REST
-// ====
-// $ curl -X POST -d '{"msg":"awesomeness"}' http://localhost:3000/messages
-// {"msg":"awesomeness"}
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Luqqk/go-cli-chat/pkg/client"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,6 +13,15 @@ import (
 	"os/signal"
 )
 
+//
+// REST
+// ====
+// $ curl -X POST -d '{"msg":"awesomeness"}' -H 'Content-Type: application/json' http://localhost:3000/messages
+// {"Msg":"awesomeness"}
+//
+// $ curl localhost:3000/messages
+// [{"Msg":"a [21:59:24] hi"},{"Msg":"awesomeness"},{"Msg":"a [21:59:49] pp"}]
+
 var ReceivedMessages []*nats.Msg
 
 func RunHTTPServer() {
@@ -26,7 +29,6 @@ func RunHTTPServer() {
 
 	nc.Subscribe("msg.test", func(m *nats.Msg) {
 		ReceivedMessages = append(ReceivedMessages, m)
-		fmt.Printf("Received a message: %s\n", string(m.Data))
 	})
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -50,7 +52,7 @@ func ListReceivedMessages(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreateMessage(w http.ResponseWriter, r *http.Request)  {
+func CreateMessage(w http.ResponseWriter, r *http.Request) {
 	data := &MsgRequest{}
 	if err := render.Bind(r, data); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
@@ -67,9 +69,11 @@ func CreateMessage(w http.ResponseWriter, r *http.Request)  {
 	render.Status(r, http.StatusCreated)
 	render.Render(w, r, NewMsgResponse(msg))
 }
+
 type MsgRequest struct {
 	*Msg
 }
+
 func (a *MsgRequest) Bind(r *http.Request) error {
 	// a.Article is nil if no Article fields are sent in the request. Return an
 	// error to avoid a nil pointer dereference.
@@ -79,6 +83,7 @@ func (a *MsgRequest) Bind(r *http.Request) error {
 
 	return nil
 }
+
 type MsgResponse struct {
 	Msg string
 }
@@ -95,7 +100,6 @@ func (rd *MsgResponse) Render(w http.ResponseWriter, r *http.Request) error {
 
 func NewMessageListResponse(msgs []*nats.Msg) []render.Renderer {
 	list := []render.Renderer{}
-	fmt.Println(msgs)
 	for _, msg := range msgs {
 		list = append(list, NewMsgResponse(msg))
 	}
